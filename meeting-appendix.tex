@@ -1,7 +1,7 @@
 \clearpage
 \section{Background for Discussion (not part of the submission)}\label{app:meeting}
 
-This section collects implementation details and run diagnostics for discussion among the authors. Unless stated otherwise, the statistics are medians over the 36 configurations solved by Standard BD (instances p4, p5, p10 and p50 with 100, 300 and 500 scenarios).
+This author-only section consolidates implementation details, runtime accounting, Gurobi bound trajectories and evidence on the learned corrections. It is not part of the IPCO submission. Unless stated otherwise, the statistics are medians over the 36 configurations solved by Standard BD (instances p4, p5, p10 and p50 with 100, 300 and 500 scenarios). Numerical comparisons distinguish Gurobi's surrogate master from exact evaluation of the original stochastic problem.
 
 \subsection{Gurobi Settings}\label{app:gurobi}
 
@@ -40,18 +40,20 @@ The scenario files are produced by \texttt{SCFLP\_data\_generation\_version4.py}
 \end{enumerate}
 The runs use \texttt{use\_stochastic\_capacity}=False and \texttt{use\_covariates}=\texttt{features\_only} (VERIFIED in all 105 solution logs): the stored capacity scenarios and covariates are not used by the solver or by LABD, the second stage uses the base capacities $u_j$, so $\mathbf T_m=\mathbf T$, and relatively complete recourse is enforced by the master constraint $\sum_ju_jx_j\ge\max_m\sum_id_{i,m}$.
 
-\subsection{What Happens Inside the Runs}\label{app:runstats}
+\subsection{Runtime Breakdown and Search Mechanics}\label{app:runstats}
+
+Here, the warm-up column measures elapsed \emph{seconds}, not the number of warm-up iterations. All LABD runs use the same five exact warm-up iterations, $|\mathcal K_0|=5$. The medians of 15, 14 and 14 seconds differ slightly because their elapsed times depend on the run, not because the iteration budget changes.
 
 Table~\ref{tab:runstats} and Fig.~\ref{fig:diag} report how the solve proceeds. A \emph{callback} is one cut-generation round, at an integer candidate or at a fractional node. \emph{Integer candidates} are the \texttt{MIPSOL} callbacks, i.e., integer master solutions submitted to the callback, most of which are cut off. \emph{Cuts generated} counts the cuts built from exact and from predicted (or averaged) duals; \emph{cuts in master} is the number of lazy constraints Gurobi keeps at the end.
 
 \begin{table}[h]
 \centering
-\caption{Median run statistics on the configurations solved by Standard BD (times in seconds).}\label{tab:runstats}
+\caption{Median run statistics on the configurations solved by Standard BD. Total runtime, warm-up, and $p$-median columns are in seconds; the warm-up always uses $|\mathcal K_0|=5$ iterations.}\label{tab:runstats}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{lrrrrrrrrr}
 \toprule
-Method & Time & Warm-up & $p$-median & Callbacks & B\&B nodes & Int.\ cand. & \multicolumn{2}{c}{Cuts generated} & Cuts in master\\
+Method & \shortstack{Total\\(s)} & \shortstack{Warm-up\\(s)} & \shortstack{$p$-median\\(s)} & Callbacks & B\&B nodes & Int.\ cand. & \multicolumn{2}{c}{Cuts generated} & Cuts in master\\
 \cmidrule(lr){8-9}
  & & & & & & & exact & predicted & \\
 \midrule
@@ -79,21 +81,6 @@ Three observations follow.
 \item \emph{Fixed costs of LABD.} Warm-up takes about 15~s (all subproblems solved exactly for five rounds), and the $p$-median selection grows with the share (median 0.5~s at 5\%, 8~s at 25\%, up to 210~s on p4 with 500 scenarios). Training, prediction, certification and the guard together take a few seconds. About 73\% of the raw predictions are infeasible and are certified.
 \end{itemize}
 
-\subsection{Bounds over Time}\label{app:lbub}
-
-Fig.~\ref{fig:lbub} plots the lower bound (LB, best bound of the master) and the upper bound (UB, incumbent of the master) recorded in every callback, together with the master gap $(UB-LB)/UB$, for a typical instance (p4, 500 scenarios) and for p10 with 300 scenarios. For Standard BD both bounds refer to the true problem. For LABD and RND they refer to the \emph{surrogate} master built with predicted or averaged cuts: the run stops when the surrogate gap is below $0.1\%$, and the returned solution is then evaluated exactly. The dotted line is the optimal objective.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\textwidth]{figures/fig_lbub.pdf}
-\caption{Master lower bound (rising curves) and upper bound (lighter falling curves), and master gap, over time. Solid: 5\% exact share; dashed: 25\%.}\label{fig:lbub}
-\end{figure}
-
-\begin{itemize}
-\item On p4, LABD closes the gap in 171~s at 5\% and 717~s at 25\%, against 1\,465~s for Standard BD. Its bounds follow the same pattern as those of Standard BD, compressed in time.
-\item RND raises its lower bound quickly, but it finds no incumbent for a long time: Gurobi keeps proposing integer solutions and the callback keeps cutting them off with new averaged cuts. On p4 its first incumbent appears only after about 2\,265~s at 5\% (Standard BD and LABD have one after about 30~s), which is why its total time exceeds that of Standard BD.
-\item On p10 with 300 scenarios, RND at 5\% is as fast as LABD, but its surrogate stops at a bound of 7\,093, far below the optimum 7\,611: its averaged cuts underestimate the recourse, and the returned solution is $1.56\%$ worse than optimal. LABD stops at 7\,603, just below the optimum, and returns the optimal solution.
-\end{itemize}
 
 \subsection{Reading a Gurobi Log}\label{app:gurobilog}
 
@@ -109,3 +96,138 @@ The folder \texttt{logs/} of this repository contains the Gurobi logs of the mas
 \end{enumerate}
 
 The LABD and RND logs read the same way. Their ``best objective'' is the surrogate value (7\,603 for LABD, 7\,093 for RND), not $V(\widehat{\mathbf x})$; LABD spends 195 of its 201~s in the callback, and RND 198 of 205~s.
+
+\subsection{Trace Sources and Bound Definitions}\label{app:trace-audit}
+
+
+The following event-level diagnostics supplement the total running times and returned objectives in Section~\ref{sec:results}. It uses the event-level traces supplied with the IPCO experiments and the matched summary in the IPCO coding repository (\path{results/ipco_20261108/}). The comparison is restricted to the direct-ridge, $p$-median, start-at-the-mean variant \path{PARAMETRIC_DIRECT_RIDGE_PMEDIAN_MEAN_V0} (LABD), Standard BD, and random selection with dual averaging (RND). The later clipped/shrunken-anchor and exact-fallback variants are \emph{not} pooled with these runs.
+
+\paragraph{Trace coverage and measurement.}
+For each of the five instances p4, p5, p10, p20, and p50 and each scenario count $S\in\{100,300,500\}$, there is one Standard BD run, three RND runs, and three LABD runs at exact-subproblem shares $5\%$, $15\%$, and $25\%$: 105 matched runs in total. The 100- and 300-scenario traces come from the corresponding \path{ipco_full100_pmedian_v0} and \path{ipco_full300_pmedian_v0} roots; the 500-scenario Standard BD/RND traces come from \path{ipco_full_pmedian}, and its LABD traces from \path{ipco_cmp_pmedian_v0}. The longer dated root names and job numbers are recorded in the results README. Seventeen additional traces in the supplied archive belong to earlier or different versions and are excluded. All 105 selected CSV traces use the \texttt{gurobi\_master\_v3\_events} schema, terminate with a \texttt{solver\_final} event, and report no inconsistent recorded bound pairs.
+
+A \emph{cut-generation round} is an observed \texttt{solver\_iteration\_start} event, not every internal Gurobi callback. The \emph{first-incumbent time} $t_{\mathrm{inc}}$ is the first event at which the recorded \emph{master} upper bound is finite. The trace duration $T$ is the elapsed time at \texttt{solver\_final}. The reported node count is Gurobi's explored branch-and-bound nodes at that event. These measurements concern the master solved by each method: for LABD and RND its bounds are those of the surrogate model, not bounds on the true objective unless independently verified. Submitted lazy/user cuts are submission counts and must not be interpreted as accepted or distinct cuts.
+
+
+
+\subsection{Gurobi Master Bounds over Time: 500 Scenarios}\label{app:lbub}
+
+Figures~\ref{fig:bounds-p4}--\ref{fig:bounds-p50} show the \emph{Gurobi master objective bounds}, rather than exactly evaluated original-problem objectives, against elapsed wall time for five separate SCFLP instances with $|\mathcal M|=500$. The comparison uses Standard BD, RND and LABD, with a $5\%$ exact-subproblem share for both inexact methods. Blue identifies Standard BD, orange RND and teal LABD. A \emph{solid} line is the Gurobi master upper bound (best incumbent); a \emph{dashed} line is the Gurobi master lower bound (best bound). Each figure has a full-run panel and an early-time detail panel. Time is in ordinary seconds on a \emph{linear} scale in both panels; only the objective-value range of the right panel is cropped to make early convergence visible.
+
+For Standard BD, the master represents the true stochastic problem (subject to its valid Benders cuts), so its upper bound is the objective of a feasible first-stage solution and its lower bound is valid for the original optimum. For RND and LABD, both displayed bounds refer instead to their \emph{surrogate} master with averaged or certified predicted dual cuts; a surrogate incumbent is not the exactly evaluated original objective. The plotted coordinates come from all recorded events where either displayed bound first appears or changes, plus the terminal solver event. Values and times are rounded to two decimal places for plotting; no synthetic incumbent is inserted when the Gurobi trace has none. The curves are stepwise because the most recently observed bound persists until the next logged change.
+
+\input{figures/master-bound-plots}
+
+\begin{figure}[tbp]\centering
+\IPCOMasterBoundPlot{p4}{2400}{300}{8000}{13000}
+\caption{p4, 500 scenarios: Gurobi master bounds versus elapsed seconds. Solid = upper, dashed = lower; LABD and RND use a $5\%$ exact share. Right: early-time objective zoom.}\label{fig:bounds-p4}
+\end{figure}
+
+\begin{figure}[tbp]\centering
+\IPCOMasterBoundPlot{p5}{270}{100}{7300}{9500}
+\caption{p5, 500 scenarios: Gurobi master bounds (solid upper, dashed lower) with a full-run view and an early-time objective zoom.}\label{fig:bounds-p5}
+\end{figure}
+
+\begin{figure}[tbp]\centering
+\IPCOMasterBoundPlot{p10}{3600}{550}{5600}{8500}
+\caption{p10, 500 scenarios: Gurobi master bounds (solid upper, dashed lower) with a full-run view and an early-time objective zoom.}\label{fig:bounds-p10}
+\end{figure}
+
+\begin{figure}[tbp]\centering
+\IPCOMasterBoundPlot{p20}{11000}{1500}{5700}{14000}
+\caption{p20, 500 scenarios: Gurobi master bounds (solid upper, dashed lower). RND at $5\%$ never obtains a finite master incumbent, so its solid orange curve is correctly absent. All three runs reach the time limit.}\label{fig:bounds-p20}
+\end{figure}
+
+\begin{figure}[tbp]\centering
+\IPCOMasterBoundPlot{p50}{2700}{500}{7300}{11000}
+\caption{p50, 500 scenarios: Gurobi master bounds (solid upper, dashed lower) with a full-run view and an early-time objective zoom.}\label{fig:bounds-p50}
+\end{figure}
+
+The full-run panels show why a smaller exact-subproblem budget can reduce elapsed time without a comparable change in the number of search rounds. At $5\%$, LABD finishes in approximately 171~s on p4, 44~s on p5, 317~s on p10 and 194~s on p50, while Standard BD takes approximately 1\,464, 158, 3\,506 and 2\,021~s, respectively. RND requires substantially longer to register its first incumbent on p4, p5 and p10. The zoom panels distinguish early bound changes that would otherwise be compressed into the left edge of the full linear-time plots. On p20, a closed surrogate gap is not observed at the limit, and the missing RND upper bound means no feasible incumbent was returned by that particular run.
+
+\clearpage
+
+\subsection{Time to a Master Incumbent and Search Effort}\label{app:trace-incumbents}
+
+Table~\ref{tab:trace-incumbents} uses the four instance families for which Standard BD terminates within the time limit (p4, p5, p10, and p50). For each scenario count, the Standard BD row is the median over four runs and the LABD/RND rows are medians over twelve runs (four instances times three exact shares). Each column is summarized separately; ratios of column medians need not equal the median of run-level ratios.
+
+\begin{table}[ht]
+\centering
+\caption{Master-incumbent appearance and search effort, excluding p20 (medians from event traces). The time fraction is computed within each run before taking its median.}
+\label{tab:trace-incumbents}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{rr r r r r}
+\toprule
+$S$ & Method & $t_{\mathrm{inc}}$ (s) & $100t_{\mathrm{inc}}/T$ (\%) & Cut rounds & B\&B nodes\\
+\midrule
+100 & BD   & 6.6  & 2.0  & 311 & 323\\
+100 & LABD & 6.5  & 9.7  & 263 & 296\\
+100 & RND  & 49.9 & 86.7 & 903 & 771\\
+\midrule
+300 & BD   & 25.7  & 2.3  & 274 & 287\\
+300 & LABD & 23.4  & 13.4 & 289 & 310\\
+300 & RND  & 170.2 & 93.3 & 971 & 822\\
+\midrule
+500 & BD   & 43.3  & 2.3  & 279 & 297\\
+500 & LABD & 84.3  & 23.4 & 285 & 290\\
+500 & RND  & 482.5 & 89.4 & 1750 & 1050\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+LABD generally reaches a first master incumbent on a time scale comparable to Standard BD, and it needs a similar number of cut-generation rounds and explored nodes. RND typically spends most of its run before its first incumbent and explores substantially more of the tree. Across the 36 matched configurations on these four instances, the median ratios to the corresponding Standard BD run are $1.01$ for LABD versus $5.51$ for RND in cut-generation rounds, and $1.01$ versus $3.63$ in explored nodes. These are \emph{observed search patterns}, not a proof that one method's cuts dominate another's everywhere.
+
+\subsection{The Difficult p20 Instance}\label{app:trace-p20}
+
+Standard BD reaches the time limit on p20 at all three scenario counts. Table~\ref{tab:trace-p20} isolates the $15\%$ exact-share runs, for which both inexact methods returned a feasible first-stage solution at every size. The signed objective difference $\Delta$ is defined in~\eqref{eq:metrics}; since BD is time-limited here, a negative value means improvement over its \emph{incumbent}, not proven optimality. The BD gap is its final master optimality gap.
+
+\begin{table}[ht]
+\centering
+\caption{p20 at the $15\%$ exact share: time to the first master incumbent and exactly evaluated objective relative to time-limited Standard BD.}
+\label{tab:trace-p20}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{r r r r r r}
+\toprule
+$S$ & BD gap (\%) & LABD $t_{\mathrm{inc}}$ (s) & RND $t_{\mathrm{inc}}$ (s) & $\Delta_{\mathrm{LABD}}$ (\%) & $\Delta_{\mathrm{RND}}$ (\%)\\
+\midrule
+100 & 16.8 & 7.5  & 1\,730 & $-3.11$ & $+1.30$\\
+300 & 29.8 & 28.7 & 3\,670 & $-3.48$ & $+27.12$\\
+500 & 33.1 & 99.7 & 9\,009 & $-2.35$ & $+3.10$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The slow appearance of a master incumbent under RND becomes especially pronounced on p20. At $S=500$, the $15\%$ RND run first records an incumbent after roughly 9\,009~s, whereas LABD does so after 100~s. The RND runs with $5\%$ exact scenarios at $S=300$, and with $5\%$ and $25\%$ at $S=500$, never record a master incumbent and have no exactly evaluated returned solution. LABD returns one in all nine p20 configurations; at $S=100$ its $5\%$ and $15\%$ runs also satisfy the solver's surrogate stopping criterion before the limit. None of these observations establishes that the true p20 optimum has been found.
+
+\subsection{Master Convergence versus Original-Problem Quality}\label{app:trace-gaps}
+
+A small or zero final master gap is \emph{not} a guarantee that the returned first-stage solution is optimal for the original stochastic program. For example, on p10 with 300 scenarios and $15\%$ exact solves, the LABD trace ends with a surrogate master lower and upper bound both near $6\,346.79$, while full exact evaluation gives $V(\widehat{\mathbf x})=7\,730.24$. The matched Standard BD objective is $7\,611.37$, so the returned original objective is $1.56\%$ higher even though the surrogate master has closed its own gap. This is why Section~\ref{sec:results} reports the original-objective difference $\Delta$ separately from the solver stopping criterion. The final evaluation and the valid surrogate lower bound provide an original-problem certificate, but that certificate can be much looser than the master stopping tolerance.
+
+\subsection{Did the Direct Ridge Correction Affect the Cuts?}\label{app:trace-guard}
+
+An additional audit uses the per-run \texttt{parametric\_objective\_guard\_checks} and \texttt{parametric\_objective\_guard\_accepted} counters in the coding repository's matched result CSV. The V0 rule begins feasibility restoration from the \emph{unshrunk mean} of the currently solved exact duals and accepts a repaired prediction only when its dual objective improves over that mean at the generating first-stage point. Table~\ref{tab:trace-guard} reports every LABD run in the same matched experiment set.
+
+\begin{table}[ht]
+\centering
+\caption{Direct-ridge guard audit. Median $\tau$ is calculated only on the twelve matched configurations per scenario count where Standard BD finishes.}
+\label{tab:trace-guard}
+\scriptsize
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{r r r r r}
+\toprule
+$S$ & LABD runs & Guard checks & Accepted corrections & Median $\tau_{\mathrm{LABD}}$\\
+\midrule
+100 & 15 & 6\,318\,140  & 0 & 0.213\\
+300 & 15 & 9\,110\,565  & 0 & 0.223\\
+500 & 15 & 11\,325\,300 & 0 & 0.250\\
+\midrule
+Total & 45 & 26\,754\,005 & 0 & ---\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\emph{No learned correction was accepted in these 45 runs.} The guard therefore returned the mean-of-exact-duals reference for every predicted subproblem at the audited cut-generation points. The large counts of \emph{predicted cuts} in the event traces count cuts submitted for subproblems not solved exactly; they do not establish that a nonzero ridge correction entered those cuts. The runtime advantage (median $\tau_{\mathrm{LABD}}=0.216$ over the 36 BD-solved configurations) is consequently evidence for the \emph{combined procedure}, including representation-guided representative selection, solving fewer recourse subproblems, and reuse of their mean dual, but not evidence that the fitted ridge map improved the cuts. A mean-anchor-only ablation with the \emph{same selected exact set} would be needed to isolate the value of the predictive model. The guard counters establish what happened in these runs; they do not imply that every possible direct-dual predictor or alternate restoration rule is ineffective.
+
+\subsection{Interpretation and Audit Limits}\label{app:trace-limits}
+The trace CSVs record solver events, not an independent check of every submitted cut's numerical validity or Gurobi's internal cut acceptance. The first-incumbent event and all master bounds belong to the model being solved, which differs between BD and the surrogate methods. The postsolve exact evaluation is intentionally excluded from the algorithm runtime. Differences in stopping status and the absence of a feasible incumbent are retained rather than imputed. These distinctions are necessary when interpreting speed, convergence, and solution quality together.
