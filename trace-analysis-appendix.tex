@@ -1,0 +1,94 @@
+\section{Additional Convergence and Prediction Diagnostics}\label{app:trace-audit}
+
+This section examines what happens \emph{during} the computations, beyond the total running times and returned objectives in Section~\ref{sec:results}. It uses the event-level traces supplied with the IPCO experiments and the matched summary in the IPCO coding repository (\path{results/ipco_20261108/}). The comparison is restricted to the direct-ridge, $p$-median, start-at-the-mean variant \path{PARAMETRIC_DIRECT_RIDGE_PMEDIAN_MEAN_V0} (LABD), Standard BD, and random selection with dual averaging (RND). The later clipped/shrunken-anchor and exact-fallback variants are \emph{not} pooled with these runs.
+
+\paragraph{Trace coverage and measurement.}
+For each of the five instances p4, p5, p10, p20, and p50 and each scenario count $S\in\{100,300,500\}$, there is one Standard BD run, three RND runs, and three LABD runs at exact-subproblem shares $5\%$, $15\%$, and $25\%$: 105 matched runs in total. The 100- and 300-scenario traces come from the corresponding \path{ipco_full100_pmedian_v0} and \path{ipco_full300_pmedian_v0} roots; the 500-scenario Standard BD/RND traces come from \path{ipco_full_pmedian}, and its LABD traces from \path{ipco_cmp_pmedian_v0}. The longer dated root names and job numbers are recorded in the results README. Seventeen additional traces in the supplied archive belong to earlier or different versions and are excluded. All 105 selected CSV traces use the \texttt{gurobi\_master\_v3\_events} schema, terminate with a \texttt{solver\_final} event, and report no inconsistent recorded bound pairs.
+
+A \emph{cut-generation round} is an observed \texttt{solver\_iteration\_start} event, not every internal Gurobi callback. The \emph{first-incumbent time} $t_{\mathrm{inc}}$ is the first event at which the recorded \emph{master} upper bound is finite. The trace duration $T$ is the elapsed time at \texttt{solver\_final}. The reported node count is Gurobi's explored branch-and-bound nodes at that event. These measurements concern the master solved by each method: for LABD and RND its bounds are those of the surrogate model, not bounds on the true objective unless independently verified. Submitted lazy/user cuts are submission counts and must not be interpreted as accepted or distinct cuts.
+
+\subsection{Time to a Master Incumbent and Search Effort}\label{app:trace-incumbents}
+
+Table~\ref{tab:trace-incumbents} uses the four instance families for which Standard BD terminates within the time limit (p4, p5, p10, and p50). For each scenario count, the Standard BD row is the median over four runs and the LABD/RND rows are medians over twelve runs (four instances times three exact shares). Each column is summarized separately; ratios of column medians need not equal the median of run-level ratios.
+
+\begin{table}[ht]
+\centering
+\caption{Master-incumbent appearance and search effort, excluding p20 (medians from event traces). The time fraction is computed within each run before taking its median.}
+\label{tab:trace-incumbents}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{rr r r r r}
+\toprule
+$S$ & Method & $t_{\mathrm{inc}}$ (s) & $100t_{\mathrm{inc}}/T$ (\%) & Cut rounds & B\&B nodes\\
+\midrule
+100 & BD   & 6.6  & 2.0  & 311 & 323\\
+100 & LABD & 6.5  & 9.7  & 263 & 296\\
+100 & RND  & 49.9 & 86.7 & 903 & 771\\
+\midrule
+300 & BD   & 25.7  & 2.3  & 274 & 287\\
+300 & LABD & 23.4  & 13.4 & 289 & 310\\
+300 & RND  & 170.2 & 93.3 & 971 & 822\\
+\midrule
+500 & BD   & 43.3  & 2.3  & 279 & 297\\
+500 & LABD & 84.3  & 23.4 & 285 & 290\\
+500 & RND  & 482.5 & 89.4 & 1750 & 1050\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+LABD generally reaches a first master incumbent on a time scale comparable to Standard BD, and it needs a similar number of cut-generation rounds and explored nodes. RND typically spends most of its run before its first incumbent and explores substantially more of the tree. Across the 36 matched configurations on these four instances, the median ratios to the corresponding Standard BD run are $1.01$ for LABD versus $5.51$ for RND in cut-generation rounds, and $1.01$ versus $3.63$ in explored nodes. These are \emph{observed search patterns}, not a proof that one method's cuts dominate another's everywhere.
+
+\subsection{The Difficult p20 Instance}\label{app:trace-p20}
+
+Standard BD reaches the time limit on p20 at all three scenario counts. Table~\ref{tab:trace-p20} isolates the $15\%$ exact-share runs, for which both inexact methods returned a feasible first-stage solution at every size. The signed objective difference $\Delta$ is defined in~\eqref{eq:metrics}; since BD is time-limited here, a negative value means improvement over its \emph{incumbent}, not proven optimality. The BD gap is its final master optimality gap.
+
+\begin{table}[ht]
+\centering
+\caption{p20 at the $15\%$ exact share: time to the first master incumbent and exactly evaluated objective relative to time-limited Standard BD.}
+\label{tab:trace-p20}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{r r r r r r}
+\toprule
+$S$ & BD gap (\%) & LABD $t_{\mathrm{inc}}$ (s) & RND $t_{\mathrm{inc}}$ (s) & $\Delta_{\mathrm{LABD}}$ (\%) & $\Delta_{\mathrm{RND}}$ (\%)\\
+\midrule
+100 & 16.8 & 7.5  & 1\,730 & $-3.11$ & $+1.30$\\
+300 & 29.8 & 28.7 & 3\,670 & $-3.48$ & $+27.12$\\
+500 & 33.1 & 99.7 & 9\,009 & $-2.35$ & $+3.10$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The slow appearance of a master incumbent under RND becomes especially pronounced on p20. At $S=500$, the $15\%$ RND run first records an incumbent after roughly 9\,009~s, whereas LABD does so after 100~s. The RND runs with $5\%$ exact scenarios at $S=300$, and with $5\%$ and $25\%$ at $S=500$, never record a master incumbent and have no exactly evaluated returned solution. LABD returns one in all nine p20 configurations; at $S=100$ its $5\%$ and $15\%$ runs also satisfy the solver's surrogate stopping criterion before the limit. None of these observations establishes that the true p20 optimum has been found.
+
+\subsection{Master Convergence versus Original-Problem Quality}\label{app:trace-gaps}
+
+A small or zero final master gap is \emph{not} a guarantee that the returned first-stage solution is optimal for the original stochastic program. For example, on p10 with 300 scenarios and $15\%$ exact solves, the LABD trace ends with a surrogate master lower and upper bound both near $6\,346.79$, while full exact evaluation gives $V(\widehat{\mathbf x})=7\,730.24$. The matched Standard BD objective is $7\,611.37$, so the returned original objective is $1.56\%$ higher even though the surrogate master has closed its own gap. This is why Section~\ref{sec:results} reports the original-objective difference $\Delta$ separately from the solver stopping criterion. The final evaluation and the valid surrogate lower bound provide an original-problem certificate, but that certificate can be much looser than the master stopping tolerance.
+
+\subsection{Did the Direct Ridge Correction Affect the Cuts?}\label{app:trace-guard}
+
+An additional audit uses the per-run \texttt{parametric\_objective\_guard\_checks} and \texttt{parametric\_objective\_guard\_accepted} counters in the coding repository's matched result CSV. The V0 rule begins feasibility restoration from the \emph{unshrunk mean} of the currently solved exact duals and accepts a repaired prediction only when its dual objective improves over that mean at the generating first-stage point. Table~\ref{tab:trace-guard} reports every LABD run in the same matched experiment set.
+
+\begin{table}[ht]
+\centering
+\caption{Direct-ridge guard audit. Median $\tau$ is calculated only on the twelve matched configurations per scenario count where Standard BD finishes.}
+\label{tab:trace-guard}
+\scriptsize
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{r r r r r}
+\toprule
+$S$ & LABD runs & Guard checks & Accepted corrections & Median $\tau_{\mathrm{LABD}}$\\
+\midrule
+100 & 15 & 6\,318\,140  & 0 & 0.213\\
+300 & 15 & 9\,110\,565  & 0 & 0.223\\
+500 & 15 & 11\,325\,300 & 0 & 0.250\\
+\midrule
+Total & 45 & 26\,754\,005 & 0 & ---\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\emph{No learned correction was accepted in these 45 runs.} The guard therefore returned the mean-of-exact-duals reference for every predicted subproblem at the audited cut-generation points. The large counts of \emph{predicted cuts} in the event traces count cuts submitted for subproblems not solved exactly; they do not establish that a nonzero ridge correction entered those cuts. The runtime advantage (median $\tau_{\mathrm{LABD}}=0.216$ over the 36 BD-solved configurations) is consequently evidence for the \emph{combined procedure}, including representation-guided representative selection, solving fewer recourse subproblems, and reuse of their mean dual, but not evidence that the fitted ridge map improved the cuts. A mean-anchor-only ablation with the \emph{same selected exact set} would be needed to isolate the value of the predictive model. The guard counters establish what happened in these runs; they do not imply that every possible direct-dual predictor or alternate restoration rule is ineffective.
+
+\paragraph{Audit limits.}
+The trace CSVs record solver events, not an independent check of every submitted cut's numerical validity or Gurobi's internal cut acceptance. The first-incumbent event and all master bounds belong to the model being solved, which differs between BD and the surrogate methods. The postsolve exact evaluation is intentionally excluded from the algorithm runtime. Differences in stopping status and the absence of a feasible incumbent are retained rather than imputed. These distinctions are necessary when interpreting speed, convergence, and solution quality together.
