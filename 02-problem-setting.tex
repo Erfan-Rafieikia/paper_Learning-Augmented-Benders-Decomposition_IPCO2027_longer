@@ -1,0 +1,129 @@
+\section{Classical and Learning-Augmented Benders Decomposition}\label{sec:setting}
+
+We consider the following class of two-stage mixed-integer linear programs with a block-separable linear second stage:
+\begin{equation}\label{eq:two-stage}
+\min_{\mathbf x\in\mathcal X}\;V(\mathbf x):=\mathbf c^\top\mathbf x+\sum_{m\in\mathcal M}\omega_m Q_m(\mathbf x),
+\end{equation}
+where
+\begin{align}
+Q_m(\mathbf x):=\min_{\mathbf y^m\ge\mathbf 0}\quad & \mathbf q^\top\mathbf y^m \label{eq:recourse}\\
+\text{s.t.}\quad & \mathbf W\mathbf y^m\le\mathbf h_m-\mathbf T_m\mathbf x. \nonumber
+\end{align}
+
+Here, $\mathbf x\in\mathcal X\subseteq\R^{n_x}\times\mathbb Z^{n_z}$ contains the first-stage decisions, while $\mathbf y^m$ contains the second-stage decisions associated with block $m\in\mathcal M$. The vectors $\mathbf h_m$ and matrices $\mathbf T_m$ contain block-specific data, whereas $\mathbf W$ and $\mathbf q$ define the common second-stage structure. The coefficient $\omega_m>0$ denotes the weight associated with block $m$. In the stochastic case, $\mathcal M$ indexes a finite set of scenarios and $\omega_m$ is the probability of scenario $m$. Throughout, we assume $\mathbf q\ge\mathbf 0$ and relatively complete recourse, so that $0\le Q_m(\mathbf x)<\infty$ for all $\mathbf x\in\mathcal X$ and $m\in\mathcal M$.
+
+\subsection{Classical Multi-cut Benders Decomposition}\label{subsec:classical-bd}
+
+For a fixed first-stage solution $\mathbf x$, the second-stage problems are independent across $m\in\mathcal M$, and their dual representation is
+\begin{equation}\label{eq:dual-subproblem}
+Q_m(\mathbf x)=\max_{\boldsymbol\lambda\in\mathcal D}\ \boldsymbol\lambda^\top\mathbf g_m(\mathbf x),
+\end{equation}
+where
+\begin{equation}\label{eq:dual-set-state}
+\mathcal D:=\bigl\{\boldsymbol\lambda\in\R_+^r:\ \mathbf W^\top\boldsymbol\lambda\ge-\mathbf q\bigr\},
+\qquad
+\mathbf g_m(\mathbf x):=\mathbf T_m\mathbf x-\mathbf h_m .
+\end{equation}
+
+Since $\mathbf W$ and $\mathbf q$ do not depend on $m$, the feasible set $\mathcal D$ is identical across subproblems; only the dual objective $\mathbf g_m(\mathbf x)$, which we call the \emph{dual-objective state}, varies with $m$ and $\mathbf x$, and it is available as soon as $\mathbf x$ is known. Let $\Lambda:=\operatorname{ext}(\mathcal D)$. Any $\boldsymbol\lambda\in\mathcal D$ defines a valid lower supporting function of $Q_m$, and the extreme points in $\Lambda$ suffice to represent $Q_m$ exactly. Multi-cut Benders decomposition~\cite{geoffrion1970elements,rahmaniani2017benders} therefore solves a restricted master problem
+\begin{subequations}\label{model:rmp}
+\begin{align}
+\min_{\mathbf x\in\mathcal X,\;\boldsymbol\eta\ge\mathbf 0}\quad & \mathbf c^\top\mathbf x+\sum_{m\in\mathcal M}\omega_m\eta_m\\
+\text{s.t.}\quad & \eta_m\ge(\boldsymbol\lambda_m^k)^\top\mathbf g_m(\mathbf x),\qquad m\in\mathcal M,\ k\in\mathcal K_m, \label{model:rmp:cuts}
+\end{align}
+\end{subequations}
+where $\mathcal K_m$ indexes the iterations whose cuts are retained for subproblem $m$. At the candidate $\mathbf x^k$ of the restricted master, every subproblem~\eqref{eq:dual-subproblem} is solved, giving $\boldsymbol\lambda_m^k\in\Lambda$, and violated cuts are added; we use the single-tree implementation, in which these cuts are generated in solver callbacks~\cite{rostami2022single}. Details are recalled in Appendix~\ref{app:classical-bd}.
+
+Every cut in~\eqref{model:rmp:cuts} thus requires an exact subproblem solve, and when $|\mathcal M|$ is large these solves dominate the running time. Because any vector of $\mathcal D$ also yields a valid cut, an exact solve can in principle be replaced by a cheaper source of dual-feasible information. This is the opening that LABD uses.
+
+\subsection{Learning-Augmented Benders Decomposition}\label{subsec:labd}
+
+The preceding subsection shows that all subproblems share the dual feasible set $\mathcal D$, that they differ only through their states $\mathbf g_m(\mathbf x)$, and that any vector of $\mathcal D$ yields a valid cut. LABD exploits this structure by solving exactly only a subset of the subproblems and predicting dual-feasible vectors for the others. Specifically, it partitions the subproblem index set into an exact-evaluation set $\mathcal M_e$ and a dual-prediction set $\mathcal M_p$,
+\begin{equation}\label{eq:partition}
+\mathcal M=\mathcal M_e\cup\mathcal M_p,\qquad \mathcal M_e\cap\mathcal M_p=\varnothing,\qquad p:=|\mathcal M_e|,
+\end{equation}
+where $p$ is the exact-subproblem budget. A prediction for $m\in\mathcal M_p$ may use three complementary sources of information: a fixed representation $\mathbf z_m\in\mathcal Z\subseteq\R^d$ that captures persistent relationships among subproblems (Section~\ref{subsec:warmup}); the state $\mathbf g_m(\mathbf x)$; and the exact duals $\boldsymbol\lambda_e(\mathbf x):=(\boldsymbol\lambda_t(\mathbf x))_{t\in\mathcal M_e}$ computed at the \emph{same} $\mathbf x$, where $\boldsymbol\lambda_t(\mathbf x)\in\Lambda_t^*(\mathbf x):=\arg\max_{\boldsymbol\lambda\in\Lambda}\boldsymbol\lambda^\top\mathbf g_t(\mathbf x)$. Since state and exact duals must come from a common first-stage solution, the set of \emph{compatible prediction states} of $m$ is
+\begin{equation}\label{eq:compatible}
+\mathcal S_{m,e}:=\bigcup_{\mathbf x\in\mathcal X}\Bigl(\{\mathbf g_m(\mathbf x)\}\times\prod_{t\in\mathcal M_e}\Lambda_t^*(\mathbf x)\Bigr).
+\end{equation}
+A prediction rule is a map $\pi_{\boldsymbol\theta}:\mathcal Z\times\R^r\times\Lambda^p\to\mathcal D$ with parameters $\boldsymbol\theta\in\Theta$, evaluated only on compatible inputs, so that
+\begin{equation}\label{eq:prediction-rule}
+\widehat{\boldsymbol\lambda}_m=\pi_{\boldsymbol\theta}\bigl(\mathbf z_m;\mathbf g,\boldsymbol\lambda_e\bigr)\in\mathcal D,\qquad (\mathbf g,\boldsymbol\lambda_e)\in\mathcal S_{m,e}.
+\end{equation}
+Dual feasibility is part of the definition of $\pi_{\boldsymbol\theta}$; the output need not be an extreme point. The predicted recourse function is
+\begin{equation}\label{eq:predicted-recourse}
+\widehat Q_m(\mathbf x;\pi_{\boldsymbol\theta}):=\max\Bigl\{0,\ \sup_{(\mathbf g,\boldsymbol\lambda_e)\in\mathcal S_{m,e}}\pi_{\boldsymbol\theta}(\mathbf z_m;\mathbf g,\boldsymbol\lambda_e)^\top\mathbf g_m(\mathbf x)\Bigr\},\qquad m\in\mathcal M_p,
+\end{equation}
+and the LABD surrogate value function is
+\begin{equation}\label{eq:surrogate}
+\widehat V(\mathbf x;\pi_{\boldsymbol\theta}):=\mathbf c^\top\mathbf x+\sum_{t\in\mathcal M_e}\omega_tQ_t(\mathbf x)+\sum_{m\in\mathcal M_p}\omega_m\widehat Q_m(\mathbf x;\pi_{\boldsymbol\theta}).
+\end{equation}
+
+Because every prediction lies in $\mathcal D$, each predicted cut underestimates the corresponding recourse function, so the surrogate~\eqref{eq:surrogate} approximates $V$ from below. The following theorem makes this precise and shows how the resulting loss in solution quality can be bounded and certified.
+
+\begin{theorem}[LABD surrogate]\label{thm:surrogate}
+For any prediction rule $\pi_{\boldsymbol\theta}$ with values in $\mathcal D$, the following properties hold.
+\begin{itemize}
+\item[(i)] Pointwise lower bound. For every $\mathbf x\in\mathcal X$, $\widehat V(\mathbf x;\pi_{\boldsymbol\theta})\le V(\mathbf x)$.
+\item[(ii)] Optimality-loss bound. Let $\mathbf x^*\in\arg\min_{\mathbf x\in\mathcal X}V(\mathbf x)$ and $\widehat{\mathbf x}\in\arg\min_{\mathbf x\in\mathcal X}\widehat V(\mathbf x;\pi_{\boldsymbol\theta})$. Then
+\begin{equation}\label{eq:surrogate-gap}
+\begin{aligned}
+0\le V(\widehat{\mathbf x})-V(\mathbf x^*)
+&\le V(\widehat{\mathbf x})-\widehat V(\widehat{\mathbf x};\pi_{\boldsymbol\theta})\\
+&=\sum_{m\in\mathcal M_p}\omega_m\Bigl[Q_m(\widehat{\mathbf x})-\widehat Q_m(\widehat{\mathbf x};\pi_{\boldsymbol\theta})\Bigr].
+\end{aligned}
+\end{equation}
+\end{itemize}
+\end{theorem}
+
+The proof is in Appendix~\ref{app:proofs}.
+
+Theorem~\ref{thm:surrogate} provides a general characterization of the approximation introduced by LABD. Part~(i) establishes that dual-feasible predictions yield a pointwise lower approximation of the original objective. Part~(ii) characterizes the resulting \emph{prediction-induced optimality gap} $\Delta_{\mathrm{LABD}}:=V(\widehat{\mathbf x})-V(\mathbf x^*)$ and relates it to the aggregate weighted underestimation of recourse over the prediction subproblems. In particular,
+\begin{equation}\label{eq:sandwich}
+\widehat V(\widehat{\mathbf x};\pi_{\boldsymbol\theta})\le V(\mathbf x^*)\le V(\widehat{\mathbf x}),
+\end{equation}
+where the first quantity is obtained from the LABD approximation and the last can be computed by evaluating all second-stage problems exactly at $\widehat{\mathbf x}$. Hence, $V(\widehat{\mathbf x})-\widehat V(\widehat{\mathbf x};\pi_{\boldsymbol\theta})$ provides a computable certificate on $\Delta_{\mathrm{LABD}}$. Section~\ref{sec:theory} bounds this error for the rule of Section~\ref{sec:method}.
+
+We next connect the surrogate problem to its implementation within Benders decomposition. Since every predicted dual vector belongs to $\mathcal D$, weak duality ensures that $\eta_m\ge\widehat{\boldsymbol\lambda}_m^\top\mathbf g_m(\mathbf x)$ is a valid Benders optimality cut for subproblem $m$. Hence, exact and predicted dual vectors can be used together within the same master problem. For a given partition $(\mathcal M_e,\mathcal M_p)$ and prediction rule $\pi_{\boldsymbol\theta}$, the full LABD surrogate Benders formulation is
+\begin{subequations}\label{model:labd}
+\begin{align}
+\min_{\mathbf x\in\mathcal X,\;\boldsymbol\eta\ge\mathbf 0}\quad & \mathbf c^\top\mathbf x+\sum_{m\in\mathcal M}\omega_m\eta_m\\
+\text{s.t.}\quad & \eta_m\ge\boldsymbol\lambda^\top\mathbf g_m(\mathbf x), && m\in\mathcal M_e,\ \boldsymbol\lambda\in\Lambda, \label{model:exact-cuts}\\
+& \eta_m\ge\pi_{\boldsymbol\theta}(\mathbf z_m;\mathbf g,\boldsymbol\lambda_e)^\top\mathbf g_m(\mathbf x), && m\in\mathcal M_p,\ (\mathbf g,\boldsymbol\lambda_e)\in\mathcal S_{m,e}. \label{model:predicted-cuts}
+\end{align}
+\end{subequations}
+For $m\in\mathcal M_e$ the exact cuts recover $Q_m(\mathbf x)$, while for $m\in\mathcal M_p$ the predicted cuts, together with $\eta_m\ge0$, recover $\widehat Q_m(\mathbf x;\pi_{\boldsymbol\theta})$; thus~\eqref{model:labd} is equivalent to minimizing $\widehat V(\mathbf x;\pi_{\boldsymbol\theta})$ over $\mathcal X$ (Appendix~\ref{app:classical-bd}). As in classical Benders decomposition, cuts are generated only as needed; a predicted cut may be weaker than the exact cut at the same state, but it is valid.
+
+\subsection{Warm-Up Information and Subproblem Representation}\label{subsec:warmup}
+
+LABD begins with a warm-up phase in which all subproblems are solved exactly. Let $\mathcal K_0$ denote the warm-up iterations and $\{\mathbf x^k\}_{k\in\mathcal K_0}$ the corresponding first-stage solutions. For each $m\in\mathcal M$ and $k\in\mathcal K_0$, let $\mathbf g_m^k:=\mathbf g_m(\mathbf x^k)$ and let $\boldsymbol\lambda_m^k\in\Lambda_m^*(\mathbf x^k)$ be the optimal extreme-point dual returned by the solver. Similarity between subproblems is inferred from their behaviour across the warm-up trajectory,
+\begin{equation}\label{eq:omega}
+\Omega_{ij}:=\frac{1}{|\mathcal K_0|}\sum_{k\in\mathcal K_0}\frac{\|\boldsymbol\lambda_i^k-\boldsymbol\lambda_j^k\|_2}{\|\boldsymbol\lambda_i^k\|_2+\|\boldsymbol\lambda_j^k\|_2+\varepsilon_{\mathrm{stab}}},
+\qquad \Omega_{ii}=0,
+\end{equation}
+where $\varepsilon_{\mathrm{stab}}>0$ ensures numerical stability. We interpret $\boldsymbol\Omega$ as a weighted graph over the subproblems and construct a low-dimensional representation $\mathbf z_m$ with DeepWalk~\cite{perozzi2014deepwalk} and the skip-gram model~\cite{mikolov2013distributed}, so that subproblems with similar dual-response trajectories are close in the learned space; contextual scenario information can be appended when available. Details are in Appendix~\ref{app:representation}. Once constructed, $\mathbf z_m$ remains fixed. The warm-up also provides the learning panel
+\begin{equation}\label{eq:panel}
+\mathcal T_0:=\bigl\{(\mathbf z_m,\mathbf g_m^k;\boldsymbol\lambda_m^k):\ m\in\mathcal M,\ k\in\mathcal K_0\bigr\},
+\end{equation}
+which contains an exact dual response for every subproblem, including those later selected for exact evaluation, so prediction models can be trained without additional subproblem solves.
+
+
+\subsection{Selection of the Exact Subproblems}
+\label{subsec:selection}
+
+After warm-up, we select a representative set of $p$
+subproblems for exact evaluation using a classical
+$p$-median formulation in the learned representation
+space. Defining $d_{mt}:=\|\mathbf z_m-\mathbf z_t\|_2$,
+we choose the set that minimizes the total distance
+of each subproblem to its nearest selected representative:
+\begin{equation}
+\label{eq:pmedian}
+\mathcal M_e\in
+\arg\min_{S\subseteq\mathcal M,\ |S|=p}
+\sum_{m\in\mathcal M}\min_{t\in S}d_{mt}.
+\end{equation}
+The selected set remains fixed after warm-up, while
+the dual solutions of its members are recomputed
+exactly throughout LABD.
+

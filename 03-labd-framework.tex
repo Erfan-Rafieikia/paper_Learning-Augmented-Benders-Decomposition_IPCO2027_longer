@@ -1,0 +1,188 @@
+
+\section{Dual Prediction and Feasibility Restoration}
+\label{sec:method}
+
+We now construct a prediction rule $\pi_{\boldsymbol\theta}$
+that combines a learned mapping for predicting subproblem
+dual solutions (Section~\ref{subsec:direct}) with a
+feasibility-restoration procedure that avoids solving
+an auxiliary optimization problem
+(Section~\ref{subsec:repair}).
+
+\subsection{State-Aware Dual Learning}
+\label{subsec:direct}
+
+Section~\ref{subsec:labd} identifies three sources of
+information for predicting the dual solution of
+$m\in\mathcal M_p$: its fixed representation
+$\mathbf z_m$, its current dual-objective state
+$\mathbf g_m(\mathbf x)$, and the current exact duals
+$\boldsymbol\lambda_e(\mathbf x)$. The learned mapping
+uses the first two to capture persistent subproblem
+characteristics and the current state, while the exact
+duals provide a feasible reference point for the
+restoration step. Define
+\begin{equation}\label{eq:state-transformation}
+\mathbf s_m(\mathbf x):=
+\phi_g\bigl(\mathbf g_m(\mathbf x)\bigr)\in\R^q,
+\end{equation}
+where $\phi_g$ is the identity map or a fixed
+transformation of the dual-objective state.
+Consider a finite-dimensional parametric mapping
+$f_{\boldsymbol\theta}:\mathcal Z\times\R^q\to\R^r$.
+The raw prediction for subproblem $m$ at $\mathbf x$ is
+\begin{equation}\label{eq:raw-prediction}
+\widetilde{\boldsymbol\lambda}_m(\mathbf x)
+:=f_{\boldsymbol\theta}
+\bigl(\mathbf z_m,\mathbf s_m(\mathbf x)\bigr).
+\end{equation}
+The warm-up panel~\eqref{eq:panel} provides the exact
+dual responses for training. With
+$\mathbf s_m^k:=\mathbf s_m(\mathbf x^k)$,
+a general empirical learning formulation is
+\begin{equation}\label{model:training}
+\min_{\boldsymbol\theta\in\Theta}\quad
+\frac{1}{|\mathcal K_0||\mathcal M|}
+\sum_{k\in\mathcal K_0}\sum_{m\in\mathcal M}
+\ell\Bigl(
+\boldsymbol\lambda_m^k,\,
+f_{\boldsymbol\theta}(\mathbf z_m,\mathbf s_m^k);
+\mathbf g_m^k
+\Bigr)+\mathcal R(\boldsymbol\theta),
+\end{equation}
+where $\ell$ is a nonnegative prediction loss and
+$\mathcal R$ is a regularization function.
+After training, the selected set $\mathcal M_e$,
+representations $\mathbf z_m$, transformation $\phi_g$,
+and fitted parameters $\boldsymbol\theta^*$ remain fixed;
+subsequent predictions use the current state.
+
+\subsection{Dual-Feasibility Restoration}
+\label{subsec:repair}
+
+The predicted dual vector
+$\widetilde{\boldsymbol\lambda}_m(\mathbf x)\in\R^r$
+may lie outside the dual-feasible polyhedron
+$\mathcal D$. A natural approach is to project it
+back onto $\mathcal D$, for example through the
+$\ell_1$-projection
+\begin{equation}\label{eq:projection}
+\min_{\boldsymbol\lambda\in\mathcal D}
+\bigl\|\boldsymbol\lambda-
+\widetilde{\boldsymbol\lambda}_m(\mathbf x)\bigr\|_1.
+\end{equation}
+This requires solving an auxiliary linear program
+for each predicted subproblem at every cut-generating
+solution. Moreover, proximity to the prediction
+does not necessarily imply a stronger Benders cut.
+
+We instead exploit the polyhedral structure of
+$\mathcal D$ to perform a directional projection
+along the segment joining the prediction to a known
+feasible point $\bar{\boldsymbol\lambda}\in\mathcal D$.
+The maximum feasible step is determined explicitly
+by the defining inequalities of $\mathcal D$.
+Linearity of the dual objective then allows us to
+select the step that maximizes the cut value at
+the generating solution.
+
+\begin{proposition}[Maximum feasible step]
+\label{prop:repair}
+Let $\bar{\boldsymbol\lambda}\in\mathcal D$,
+$\widetilde{\boldsymbol\lambda}\in\R^r$, and
+$\mathbf d:=\widetilde{\boldsymbol\lambda}
+-\bar{\boldsymbol\lambda}$. Then
+\[
+\{\gamma\in[0,1]:
+\bar{\boldsymbol\lambda}+\gamma\mathbf d\in\mathcal D\}
+=[0,\gamma^{\max}],
+\]
+where
+\begin{equation}\label{eq:gamma-max}
+\gamma^{\max}
+=\min\Bigl\{
+1,\
+\min_{j:\,d_j<0}\frac{\bar\lambda_j}{-d_j},\
+\min_{\ell:\,(\mathbf W^\top\mathbf d)_\ell<0}
+\frac{(\mathbf W^\top\bar{\boldsymbol\lambda})_\ell+q_\ell}
+{-(\mathbf W^\top\mathbf d)_\ell}
+\Bigr\},
+\end{equation}
+with minima over empty index sets omitted.
+Moreover, for any $\mathbf g\in\R^r$, the dual
+objective $(\bar{\boldsymbol\lambda}+
+\gamma\mathbf d)^\top\mathbf g$ is maximized
+over $[0,\gamma^{\max}]$ at
+\begin{equation}\label{eq:guard}
+\gamma^\star=
+\begin{cases}
+\gamma^{\max}, & \mathbf d^\top\mathbf g>0,\\
+0, & \text{otherwise}.
+\end{cases}
+\end{equation}
+\end{proposition}
+
+Proposition~\ref{prop:repair} replaces the auxiliary
+projection problem with an explicit feasibility
+calculation along a line segment. The rule
+\eqref{eq:guard} further ensures that the resulting
+cut is no weaker than the reference cut at the
+generating solution.
+
+To obtain a feasible reference point, we exploit
+the convexity of the common dual-feasible region
+$\mathcal D$. The average of the exact dual solutions
+at the current first-stage solution,
+\begin{equation}\label{eq:mean-anchor}
+\bar{\boldsymbol\lambda}(\mathbf x)
+:=\frac{1}{p}\sum_{t\in\mathcal M_e}
+\boldsymbol\lambda_t(\mathbf x),
+\end{equation}
+belongs to $\mathcal D$ and requires no additional
+subproblem evaluations. Applying
+Proposition~\ref{prop:repair} with this reference
+point and
+$\mathbf d_m(\mathbf x):=
+\widetilde{\boldsymbol\lambda}_m(\mathbf x)
+-\bar{\boldsymbol\lambda}(\mathbf x)$
+yields the restored dual prediction
+\begin{equation}\label{eq:certified}
+\widehat{\boldsymbol\lambda}_m(\mathbf x)
+:=
+\bigl(1-\gamma_m(\mathbf x)\bigr)
+\bar{\boldsymbol\lambda}(\mathbf x)
++\gamma_m(\mathbf x)
+\widetilde{\boldsymbol\lambda}_m(\mathbf x),
+\end{equation}
+where $\gamma_m(\mathbf x)$ is defined by
+\eqref{eq:guard} with
+$\mathbf g=\mathbf g_m(\mathbf x)$.
+This defines the prediction rule
+$\pi_{\boldsymbol\theta^*}
+(\mathbf z_m;\mathbf g_m(\mathbf x),
+\boldsymbol\lambda_e(\mathbf x))
+:=\widehat{\boldsymbol\lambda}_m(\mathbf x)$.
+
+\begin{proposition}[Feasibility and cut improvement]
+\label{prop:certificate}
+For every $\mathbf x\in\mathcal X$ and
+$m\in\mathcal M_p$,
+$\widehat{\boldsymbol\lambda}_m(\mathbf x)
+\in\mathcal D$, and
+\begin{equation}\label{eq:improvement}
+\begin{aligned}
+\widehat{\boldsymbol\lambda}_m(\mathbf x)^\top
+\mathbf g_m(\mathbf x)
+&=\bar{\boldsymbol\lambda}(\mathbf x)^\top
+\mathbf g_m(\mathbf x)\\
+&\quad+
+\gamma_m^{\max}(\mathbf x)
+\bigl[\mathbf d_m(\mathbf x)^\top
+\mathbf g_m(\mathbf x)\bigr]_+\\
+&\ge
+\bar{\boldsymbol\lambda}(\mathbf x)^\top
+\mathbf g_m(\mathbf x),
+\end{aligned}
+\end{equation}
+where $[u]_+:=\max\{u,0\}$.
+\end{proposition}

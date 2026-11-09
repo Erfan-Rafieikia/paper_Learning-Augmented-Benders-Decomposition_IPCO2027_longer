@@ -1,0 +1,31 @@
+\section{Performance Guarantees}\label{sec:theory}
+
+The certified prediction combines a feasible reference point, built from the current exact duals, with a learned and guarded move toward the raw prediction. Its approximation error therefore depends both on how well the exact subproblems represent the predicted ones and on the effect of the accepted move. We characterize these effects without imposing a particular statistical specification on $f_{\boldsymbol\theta}$. Let
+\begin{equation}\label{eq:diameter}
+\Delta_\Lambda:=\max_{\boldsymbol\lambda,\boldsymbol\mu\in\Lambda}\|\boldsymbol\lambda-\boldsymbol\mu\|_2
+\end{equation}
+denote the diameter of the set $\Lambda=\operatorname{ext}(\mathcal D)$ of extreme points of the common dual-feasible region, which is finite because $\Lambda$ is finite. For compactness, write $\widehat Q_m(\mathbf x):=\widehat Q_m(\mathbf x;\pi_{\boldsymbol\theta^*})$ and $\widehat V(\mathbf x):=\widehat V(\mathbf x;\pi_{\boldsymbol\theta^*})$.
+
+\begin{theorem}[Performance of certified dual prediction]\label{thm:performance}
+For every $m\in\mathcal M_p$ and $\mathbf x\in\mathcal X$,
+\begin{equation}\label{eq:recourse-bound}
+\begin{aligned}
+0\le Q_m(\mathbf x)-\widehat Q_m(\mathbf x)
+&\le\frac{\Delta_\Lambda}{p}\sum_{t\in\mathcal M_e}\bigl\|\mathbf g_m(\mathbf x)-\mathbf g_t(\mathbf x)\bigr\|_2\\
+&\quad-\gamma_m(\mathbf x)\,\mathbf d_m(\mathbf x)^\top\mathbf g_m(\mathbf x).
+\end{aligned}
+\end{equation}
+Moreover, if $\widehat{\mathbf x}\in\arg\min_{\mathbf x\in\mathcal X}\widehat V(\mathbf x)$, then
+\begin{equation*}\label{eq:gap-bound}
+\begin{aligned}
+0\le V(\widehat{\mathbf x})-V(\mathbf x^*)
+&\le V(\widehat{\mathbf x})-\widehat V(\widehat{\mathbf x})
+\le\frac{\Delta_\Lambda}{p}\sum_{m\in\mathcal M_p}\omega_m\sum_{t\in\mathcal M_e}\bigl\|\mathbf g_m(\widehat{\mathbf x})-\mathbf g_t(\widehat{\mathbf x})\bigr\|_2\\
+&\quad-\sum_{m\in\mathcal M_p}\omega_m\gamma_m(\widehat{\mathbf x})\,\mathbf d_m(\widehat{\mathbf x})^\top\mathbf g_m(\widehat{\mathbf x}).
+\end{aligned}
+\end{equation*}
+\end{theorem}
+
+Theorem~\ref{thm:performance} separates the contribution of the exact subproblems from that of the learned prediction. The first term captures the approximation error of the mean of the current exact duals: it depends only on how far the dual-objective states of the predicted subproblems are from those of the exact subproblems, and not on anything learned. The second term accounts for the accepted move toward the raw prediction. By the objective guard~\eqref{eq:guard}, this term is never negative, so the guarantee holds without an additional prediction-error term and the predicted cut is at least as strong as the cut of the mean at the generating solution. At another solution $\mathbf x'$ the two cuts differ by $\gamma_m(\mathbf x)\,\mathbf d_m(\mathbf x)^\top\mathbf g_m(\mathbf x')$, which can be negative, so this improvement is local.
+
+Section~\ref{sec:results} examines how these properties translate into computational performance.

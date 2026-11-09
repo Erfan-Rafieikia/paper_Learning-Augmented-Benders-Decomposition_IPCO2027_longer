@@ -1,0 +1,58 @@
+% =====================================================================
+% IPCO 2027 extended abstract -- Learning-Augmented Benders Decomposition
+% Format: Springer LNCS (llncs.cls v2.24), double-blind.
+% Main body (Sections 1-6): at most 12 pages in LNCS format.
+% After the main body: acknowledgements, references, appendix (no limit).
+% See README.md for the full IPCO 2027 rules and checklist.
+% =====================================================================
+\documentclass[runningheads]{llncs}
+
+\input{preamble}
+
+\begin{document}
+
+\title{Learning-Augmented Benders Decomposition\\ with Performance Guarantees}
+\titlerunning{Learning-Augmented Benders Decomposition}
+
+% ---- Double-blind: keep anonymous for submission ----------------------
+\author{Anonymous Author(s)}
+\authorrunning{Anonymous}
+\institute{Anonymous Institution(s)}
+% For the camera-ready version only (after acceptance), replace with:
+% \author{First Author\inst{1} \and Second Author\inst{1} \and Third Author\inst{2}}
+% \institute{...}
+
+\maketitle
+
+\begin{abstract}
+% Abstract (LNCS: 150--250 words). Title and abstract go on the first page.
+The Benders decomposition (BD) method can become computationally expensive for large two-stage stochastic programs because each iteration may require solving a large number of subproblems. We propose Learning-Augmented Benders Decomposition (LABD), which solves only a selected subset of subproblems exactly and predicts dual-feasible solutions for the remaining ones. After a short warm-up phase, LABD learns representations of subproblem behavior, uses them to select the exact subproblems, and trains a mapping that predicts the dual solution of each remaining subproblem from its representation and its current state. Infeasible predictions are certified without solving an optimization problem: an explicit step along the segment from the mean of the current exact duals moves toward the prediction as far as dual feasibility allows, and only if it improves the dual objective. Because only dual-feasible predictions are used for cut generation, the resulting optimality cuts remain valid. We establish optimality-gap bounds that separate the contribution of the exact subproblems from that of the learned prediction. On stochastic capacitated facility location instances with 100 to 500 scenarios, LABD matches the objective value of Standard BD in 34 of the 36 configurations that Standard BD solves while reducing the median solution time by about 78\% (a speedup of about $4.6\times$), whereas solving a random subset exactly and averaging its duals is not faster than Standard BD in the median.
+
+\keywords{Benders decomposition \and Two-stage stochastic programming \and Machine learning \and Dual prediction}
+\end{abstract}
+
+% ---------------------------- MAIN BODY (<= 12 pages) ----------------------------
+\input{01-introduction}
+\input{02-problem-setting}
+\input{03-labd-framework}
+\input{04-theory}
+\input{05-computational-results}
+\input{06-conclusion}
+\label{end-of-main-body}% the page of this label must be <= 12
+% ---------------------------- END OF MAIN BODY ----------------------------------
+
+% Acknowledgements: IPCO requires disclosure of any AI/LLM use here.
+% Do NOT acknowledge funders, advisors or supporters in the submitted version.
+\begin{credits}
+\subsubsection{\ackname}
+The authors used a large language model to assist with editing the text and with writing and testing parts of the experimental code; all content was checked by the authors, who take full responsibility for it. Reviewers may upload this submission to a generative AI service.
+\end{credits}
+
+\bibliographystyle{splncs04}
+\bibliography{references}
+
+% ---------------------------- APPENDIX (no page limit; reviewed, not published) --
+\appendix
+\input{appendix}
+
+\end{document}

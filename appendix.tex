@@ -1,0 +1,118 @@
+\section{Proofs}\label{app:proofs}
+
+\subsection{Proof of Theorem~\ref{thm:surrogate}}
+\begin{proof}
+Fix $\mathbf x\in\mathcal X$ and $m\in\mathcal M_p$. Every vector in the supremum of~\eqref{eq:surrogate} lies in $\mathcal D$, so by weak duality its objective at $\mathbf x$ is at most $Q_m(\mathbf x)$. Since $Q_m(\mathbf x)\ge0$, taking the supremum and the maximum with zero preserves the inequality, so $0\le\widehat Q_m(\mathbf x)\le Q_m(\mathbf x)$. The blocks in $\mathcal M_e$ enter $\widehat V$ exactly; multiplying by $\omega_m>0$ and adding $\mathbf c^\top\mathbf x$ gives~(i). For~(ii), optimality of $\widehat{\mathbf x}$ for $\widehat V$ and~(i) give $\widehat V(\widehat{\mathbf x})\le\widehat V(\mathbf x^*)\le V(\mathbf x^*)\le V(\widehat{\mathbf x})$. Subtracting $\widehat V(\widehat{\mathbf x})$ from the last term and cancelling the exactly represented blocks yields~\eqref{eq:surrogate-gap}.
+\end{proof}
+
+\subsection{Proof of Proposition~\ref{prop:repair}}
+\begin{proof}
+Along $\bar{\boldsymbol\lambda}+\gamma\mathbf d$, membership in $\mathcal D$ is equivalent to $\bar\lambda_j+\gamma d_j\ge0$ for all $j$ and $(\mathbf W^\top\bar{\boldsymbol\lambda})_\ell+q_\ell+\gamma(\mathbf W^\top\mathbf d)_\ell\ge0$ for all $\ell$. Because $\bar{\boldsymbol\lambda}\in\mathcal D$, every constant term is nonnegative, so each constraint with a nonnegative coefficient of $\gamma$ holds for all $\gamma\ge0$, and each constraint with a negative coefficient holds exactly for $\gamma$ up to the corresponding ratio in~\eqref{eq:gamma-max}. The feasible steps in $[0,1]$ therefore form the interval $[0,\gamma^{\max}]$. The objective $(\bar{\boldsymbol\lambda}+\gamma\mathbf d)^\top\mathbf g=\bar{\boldsymbol\lambda}^\top\mathbf g+\gamma\,\mathbf d^\top\mathbf g$ is affine in $\gamma$, so its maximum over the interval is attained at $\gamma^{\max}$ if $\mathbf d^\top\mathbf g>0$ and at $0$ otherwise (ties resolved toward the reference point).
+\end{proof}
+
+\subsection{Proof of Proposition~\ref{prop:certificate}}
+\begin{proof}
+Each $\boldsymbol\lambda_t(\mathbf x)$, $t\in\mathcal M_e$, is an extreme point of $\mathcal D$, and $\mathcal D$ is convex and does not depend on the block, so $\bar{\boldsymbol\lambda}(\mathbf x)\in\mathcal D$. Proposition~\ref{prop:repair} with this reference point shows that $\gamma_m(\mathbf x)\in\{0,\gamma_m^{\max}(\mathbf x)\}\subseteq[0,\gamma_m^{\max}(\mathbf x)]$ is a feasible step, so $\widehat{\boldsymbol\lambda}_m(\mathbf x)\in\mathcal D$. By~\eqref{eq:guard}, $\gamma_m(\mathbf x)\,\mathbf d_m(\mathbf x)^\top\mathbf g_m(\mathbf x)=\gamma_m^{\max}(\mathbf x)[\mathbf d_m(\mathbf x)^\top\mathbf g_m(\mathbf x)]_+\ge0$, which gives~\eqref{eq:improvement}.
+\end{proof}
+
+\subsection{Proof of Theorem~\ref{thm:performance}}
+\begin{proof}
+Fix $m\in\mathcal M_p$ and $\mathbf x\in\mathcal X$, suppress $\mathbf x$, and write $\mathbf g_m=\mathbf g_m(\mathbf x)$. The lower bound $0\le Q_m-\widehat Q_m$ is Theorem~\ref{thm:surrogate}. Let $\boldsymbol\lambda_m^\star\in\Lambda$ be optimal for block $m$, so $Q_m=\boldsymbol\lambda_m^{\star\top}\mathbf g_m$. For $t\in\mathcal M_e$, $\boldsymbol\lambda_t\in\Lambda$ is optimal for $\mathbf g_t$, hence $\boldsymbol\lambda_t^\top\mathbf g_t\ge\boldsymbol\lambda_m^{\star\top}\mathbf g_t$ and
+\[
+\boldsymbol\lambda_m^{\star\top}\mathbf g_m-\boldsymbol\lambda_t^\top\mathbf g_m
+\le\boldsymbol\lambda_m^{\star\top}\mathbf g_m-\boldsymbol\lambda_m^{\star\top}\mathbf g_t+\boldsymbol\lambda_t^\top\mathbf g_t-\boldsymbol\lambda_t^\top\mathbf g_m
+=(\boldsymbol\lambda_m^\star-\boldsymbol\lambda_t)^\top(\mathbf g_m-\mathbf g_t)
+\le\Delta_\Lambda\|\mathbf g_m-\mathbf g_t\|_2,
+\]
+by the Cauchy--Schwarz inequality and~\eqref{eq:diameter}. Averaging over $t\in\mathcal M_e$ gives $Q_m-\bar{\boldsymbol\lambda}^\top\mathbf g_m\le\frac{\Delta_\Lambda}{p}\sum_{t\in\mathcal M_e}\|\mathbf g_m-\mathbf g_t\|_2$. The certified prediction at $\mathbf x$ is one of the vectors in the supremum defining $\widehat Q_m(\mathbf x)$, so by~\eqref{eq:improvement}
+\[
+\widehat Q_m\ge\widehat{\boldsymbol\lambda}_m^\top\mathbf g_m=\bar{\boldsymbol\lambda}^\top\mathbf g_m+\gamma_m\,\mathbf d_m^\top\mathbf g_m .
+\]
+Combining the two displays proves~\eqref{eq:recourse-bound}. Inserting~\eqref{eq:recourse-bound} at $\widehat{\mathbf x}$ into~\eqref{eq:surrogate-gap} and summing with weights $\omega_m>0$ proves~\eqref{eq:gap-bound}.
+\end{proof}
+
+\section{Multi-cut Benders Decomposition and the LABD Master Problem}\label{app:classical-bd}
+
+With $\boldsymbol\eta=(\eta_m)_{m\in\mathcal M}$, the exact multi-cut reformulation of~\eqref{eq:two-stage} is
+\begin{equation}\label{eq:full-master}
+\min_{\mathbf x\in\mathcal X,\ \boldsymbol\eta\ge\mathbf 0}\ \mathbf c^\top\mathbf x+\sum_{m\in\mathcal M}\omega_m\eta_m
+\quad\text{s.t.}\quad \eta_m\ge\boldsymbol\lambda^\top\mathbf g_m(\mathbf x),\qquad m\in\mathcal M,\ \boldsymbol\lambda\in\Lambda .
+\end{equation}
+Under relatively complete recourse no feasibility cuts are needed~\cite{birge2006introduction}. Algorithm~\ref{alg:classical-bd} states the classical multi-cut method. The restricted master keeps, for each subproblem, only the cuts generated so far; at iteration $k$ its value gives the lower bound $LB^k$, and exact evaluation of all subproblems at $\mathbf x^k$ gives a candidate upper bound.
+
+\begin{algorithm}[h]
+\caption{Classical multi-cut Benders decomposition}\label{alg:classical-bd}
+\begin{algorithmic}[1]
+\Require optimality-gap tolerance $\epsilon>0$
+\State $\Lambda_m\gets\varnothing$ for all $m\in\mathcal M$; $UB\gets+\infty$; $k\gets0$
+\Loop
+\State $k\gets k+1$; solve $\min\{\mathbf c^\top\mathbf x+\sum_m\omega_m\eta_m:\ \eta_m\ge\boldsymbol\lambda^\top\mathbf g_m(\mathbf x)\ (\boldsymbol\lambda\in\Lambda_m,\ m\in\mathcal M),\ \boldsymbol\eta\ge\mathbf 0,\ \mathbf x\in\mathcal X\}$
+\State let $(\mathbf x^k,\boldsymbol\eta^k)$ be optimal and $LB^k\gets\mathbf c^\top\mathbf x^k+\sum_m\omega_m\eta_m^k$
+\For{$m\in\mathcal M$}
+\State solve~\eqref{eq:dual-subproblem} at $\mathbf x^k$ and obtain $\boldsymbol\lambda_m^k\in\Lambda$
+\If{$\eta_m^k<(\boldsymbol\lambda_m^k)^\top\mathbf g_m(\mathbf x^k)$} $\Lambda_m\gets\Lambda_m\cup\{\boldsymbol\lambda_m^k\}$ \EndIf
+\EndFor
+\If{$V(\mathbf x^k)<UB$} $UB\gets V(\mathbf x^k)$; $\bar{\mathbf x}\gets\mathbf x^k$ \EndIf
+\If{$UB-LB^k<\epsilon$} \Return $\bar{\mathbf x}$, $UB$ \EndIf
+\EndLoop
+\end{algorithmic}
+\end{algorithm}
+
+In the single-tree implementation used here, the master is solved once by branch and bound, and the cut-generation step of Algorithm~\ref{alg:classical-bd} is carried out in solver callbacks at LP-relaxation and integer-feasible solutions~\cite{rostami2022single,rostami2023convex}. LABD runs the same scheme on the formulation~\eqref{model:labd}: in the cut-generation step, subproblems $t\in\mathcal M_e$ are solved exactly, and subproblems $m\in\mathcal M_p$ receive the certified prediction~\eqref{eq:certified}. Since~\eqref{model:labd} is equivalent to $\min_{\mathbf x\in\mathcal X}\widehat V(\mathbf x;\pi_{\boldsymbol\theta})$ (Section~\ref{subsec:labd}), its restricted master value bounds $\min_{\mathbf x}\widehat V$ from below, and the final solution is re-evaluated exactly to obtain $V(\widehat{\mathbf x})$.
+
+\section{Block Representations from Warm-up Duals}\label{app:representation}
+
+Given $\boldsymbol\Omega$ in~\eqref{eq:omega}, each discrepancy is turned into an affinity $a_{ij}:=\exp(-\Omega_{ij}/\tau)$ for $i\ne j$ and $a_{ii}:=0$, with temperature $\tau>0$, and into transition probabilities $\rho_{ij}:=a_{ij}/\sum_{l\ne i}a_{il}$. From each block we generate $n_{\mathrm{walk}}$ random walks of length $\ell_{\mathrm{walk}}$ with these probabilities, and train a skip-gram model with window $w$ and dimension $d$ on the walk corpus~\cite{perozzi2014deepwalk,mikolov2013distributed}. The embedding of block $m$ is its representation $\mathbf z_m$. When a block has several optimal duals during warm-up, the representation can depend on which one the solver returns; we use the solver's choice under fixed settings, and a deterministic tie-breaking rule can be imposed when exact reproducibility is required. In all experiments we use $|\mathcal K_0|=5$ warm-up rounds, $\varepsilon_{\mathrm{stab}}=10^{-12}$, $\tau=1$, $n_{\mathrm{walk}}=2$, $\ell_{\mathrm{walk}}=5$, $w=5$ and $d=3$ for the representation, and $q=3$ and $\beta_z=\beta_g=10^{-3}$ for the mapping of Section~\ref{subsec:direct}. The $p$-median problem~\eqref{eq:pmedian} is solved by a deterministic build-and-swap heuristic with a 300-second limit.
+
+\section{Experimental Details}\label{app:experiments}
+
+\subsection{SCFLP Formulation and Benders Reformulation}\label{app:scflp}
+
+Let $\mathcal J$ be the set of candidate facilities and $\mathcal I$ the set of customers. Opening facility $j\in\mathcal J$ incurs a fixed cost $f_j$ and provides capacity $u_j$; the binary variable $x_j$ equals one if facility $j$ is opened. Serving one unit of demand of customer $i\in\mathcal I$ from facility $j$ costs $c_{ij}$. Let $\mathcal M$ be the set of equally likely demand scenarios, $d_{i,m}$ the demand of customer $i$ in scenario $m$, and $y_{ij}^m$ the amount supplied from $j$ to $i$ in scenario $m$. The sample average approximation of the SCFLP is
+\begin{subequations}\label{model:scflp-saa}
+\begin{align}
+\min_{\mathbf x,\{\mathbf y^m\}}\quad & \sum_{j\in\mathcal J}f_jx_j+\frac{1}{|\mathcal M|}\sum_{m\in\mathcal M}\sum_{i\in\mathcal I}\sum_{j\in\mathcal J}c_{ij}y_{ij}^m\\
+\text{s.t.}\quad & \sum_{j\in\mathcal J}u_jx_j\ge\max_{m\in\mathcal M}\sum_{i\in\mathcal I}d_{i,m}, \label{model:scflp-saa:rcr}\\
+& \sum_{j\in\mathcal J}y_{ij}^m\ge d_{i,m}, && i\in\mathcal I,\ m\in\mathcal M, \label{model:scflp-saa:demand}\\
+& \sum_{i\in\mathcal I}y_{ij}^m\le u_jx_j, && j\in\mathcal J,\ m\in\mathcal M, \label{model:scflp-saa:capacity}\\
+& y_{ij}^m\ge0,\quad x_j\in\{0,1\}, && i\in\mathcal I,\ j\in\mathcal J,\ m\in\mathcal M.
+\end{align}
+\end{subequations}
+Constraints~\eqref{model:scflp-saa:demand}--\eqref{model:scflp-saa:capacity} enforce demand satisfaction and facility capacities in every scenario. Because every customer can be served from every open facility, constraint~\eqref{model:scflp-saa:rcr} guarantees enough aggregate capacity for the largest sampled total demand and hence relatively complete recourse.
+
+\paragraph{Scenario subproblems.} For fixed $\mathbf x$, \eqref{model:scflp-saa} separates into the first-stage problem $\min\{\sum_jf_jx_j+\frac{1}{|\mathcal M|}\sum_mQ_m(\mathbf x):\ \eqref{model:scflp-saa:rcr},\ \mathbf x\in\{0,1\}^{|\mathcal J|}\}$ and the scenario subproblems
+\begin{subequations}\label{model:scflp-sub}
+\begin{align}
+Q_m(\mathbf x):=\min_{\mathbf y^m\ge\mathbf 0}\quad & \sum_{i\in\mathcal I}\sum_{j\in\mathcal J}c_{ij}y_{ij}^m\\
+\text{s.t.}\quad & \sum_{j\in\mathcal J}y_{ij}^m\ge d_{i,m}, && i\in\mathcal I,\\
+& \sum_{i\in\mathcal I}y_{ij}^m\le u_jx_j, && j\in\mathcal J.
+\end{align}
+\end{subequations}
+
+\paragraph{Dual representation and optimality cuts.} Let $\mu_i\ge0$ and $\nu_j\ge0$ be the duals of the demand and capacity constraints of~\eqref{model:scflp-sub}, and
+\[
+\mathcal D_{\mathrm F}:=\bigl\{(\boldsymbol\mu,\boldsymbol\nu)\ge\mathbf 0:\ \mu_i-\nu_j\le c_{ij},\ i\in\mathcal I,\ j\in\mathcal J\bigr\}.
+\]
+Then
+\begin{equation}\label{model:scflp-dual}
+Q_m(\mathbf x)=\max_{(\boldsymbol\mu,\boldsymbol\nu)\in\mathcal D_{\mathrm F}}\Bigl\{\sum_{i\in\mathcal I}d_{i,m}\mu_i-\sum_{j\in\mathcal J}u_jx_j\nu_j\Bigr\},
+\end{equation}
+and any $(\boldsymbol\mu,\boldsymbol\nu)\in\mathcal D_{\mathrm F}$, exact or predicted, gives the valid optimality cut
+\begin{equation}\label{eq:scflp-cut}
+\eta_m\ge\sum_{i\in\mathcal I}d_{i,m}\mu_i-\sum_{j\in\mathcal J}u_jx_j\nu_j .
+\end{equation}
+In the notation of Section~\ref{sec:setting}, $\boldsymbol\lambda=(\boldsymbol\mu,\boldsymbol\nu)$, $\mathcal D=\mathcal D_{\mathrm F}$ and $\mathbf g_m(\mathbf x)=(\mathbf d_m,\,-(u_jx_j)_{j\in\mathcal J})$, where $\mathbf d_m:=(d_{i,m})_{i\in\mathcal I}$. Only the demands vary with $m$, so $\mathbf T_m=\mathbf T$ for all $m$, and $\mathcal D_{\mathrm F}$ contains $\mathbf 0$ since $c_{ij}\ge0$. The Benders master problem consists of the first-stage objective with $\frac{1}{|\mathcal M|}\sum_m\eta_m$, constraint~\eqref{model:scflp-saa:rcr}, $\eta_m\ge0$ and the cuts~\eqref{eq:scflp-cut}; Standard BD generates them from optimal solutions of~\eqref{model:scflp-dual} for all $m$, and LABD from exact duals for $m\in\mathcal M_e$ and certified predictions for $m\in\mathcal M_p$. Because of~\eqref{model:scflp-saa:rcr}, only optimality cuts are needed.
+
+\subsection{Instances and Data Generation}\label{app:instances}
+
+We use the deterministic instances p4, p5, p10, p20 and p50 of~\cite{holmberg1999exact}. Instances p4, p5 and p10 have 50 customers and 10 candidate facilities, p20 has 50 customers and 20 facilities, and p50 has 100 customers and 10 facilities. The Holmberg data give the cost of serving the whole demand of customer $i$ from facility $j$; we use the corresponding unit cost $c_{ij}/\bar d_i$.
+
+Each instance is extended to $|\mathcal M|\in\{100,300,500\}$ scenarios with weight $\omega_m=1/|\mathcal M|$. Adapting the demand-generation procedure of~\cite{bodur2017strengthened}, let $\bar d_i$ be the baseline demand of customer $i$. We draw $\sigma_i\sim\operatorname{Uniform}(0.1\bar d_i,\,0.3\bar d_i)$ and set $d_{i,m}=\max\{0,D_{i,m}\}$ with $D_{i,m}\sim\mathcal N(\bar d_i,\sigma_i^2)$. The demands are scaled where necessary to satisfy the capacity condition~\eqref{model:scflp-saa:rcr}.
+
+\subsection{Computational Implementation}\label{app:implementation}
+
+All methods use the same single-tree multi-cut Benders implementation (Appendix~\ref{app:classical-bd}): the master MIP is processed in a single branch-and-bound tree, and cuts are added in callbacks at LP-relaxation and integer-feasible solutions. The $p$-median problem~\eqref{eq:pmedian} is approximated by a deterministic build-and-swap heuristic. The mapping is linear with no intercept, $f_{\boldsymbol\theta}(\mathbf z,\mathbf s)=\boldsymbol\Theta_z\mathbf z+\boldsymbol\Theta_g\mathbf s$, and is trained in~\eqref{model:training} with the squared loss and the ridge penalty $\mathcal R(\boldsymbol\theta)=\beta_z\|\boldsymbol\Theta_z\|_F^2+\beta_g\|\boldsymbol\Theta_g\|_F^2$. The state map $\phi_g$ projects $\mathbf g_m(\mathbf x)$, without centring or scaling, onto the leading $q$ right singular vectors of the matrix of warm-up states. LABD uses certified predictions for its prediction subproblems at both callback locations, and RND uses its averaged duals at both. Hyperparameter values are listed in Appendix~\ref{app:representation}.
+
+\subsection{Termination and Evaluation Conventions}\label{app:conventions}
+
+A configuration is \emph{solved by Standard BD} when Standard BD terminates within the three-hour limit after meeting the $0.1\%$ optimality tolerance; otherwise it is \emph{not solved by Standard BD}. Meeting the tolerance does not require a zero optimality gap. For every returned first-stage solution, the objective $V_a$ used in $\Delta_a$ is computed by fixing that solution and solving all scenario subproblems exactly. For configurations solved by Standard BD, $\Delta_a$ compares $V_a$ with the objective of the completed Standard BD run; for the others, it compares the best feasible solutions returned within the common time limit and is not a certified optimality gap. Recorded runtimes can slightly exceed three hours, because the solver may finish its current work before returning after the time limit.

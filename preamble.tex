@@ -1,0 +1,29 @@
+% ---- Packages (keep LNCS look: do not change fonts, margins or spacing) ----
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage[capitalise,noabbrev]{cleveref}
+
+% llncs.cls already defines theorem, lemma, proposition, corollary,
+% definition, remark, example and proof. Add only what is missing.
+\spnewtheorem{assumption}{Assumption}{\bfseries}{\itshape}
+
+% ---- Drafting helpers (remove before submission) ----
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+% Review markup: reviewer comments in blue (\textcolor{blue}{...}), text revised
+% in response in purple. \rev{...} for short inline text; revblock for passages
+% that span paragraphs, equations or environments.
+\newcommand{\rev}[1]{\textcolor{purple}{#1}}
+\newcommand{\fillin}{\textcolor{red}{\underline{\hspace{2em}}}}% number to be filled after the runs
+\newenvironment{revblock}{\color{purple}}{}
+
+% ---- Notation (fill in from the journal manuscript as we port content) ----
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
