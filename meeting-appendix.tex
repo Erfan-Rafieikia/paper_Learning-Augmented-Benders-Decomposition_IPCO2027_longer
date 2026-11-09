@@ -78,3 +78,34 @@ Three observations follow.
 \item \emph{RND searches much more.} With averaged duals of random subproblems, its cuts are weaker: it needs 3--4 times more callbacks and 2.5--3 times more nodes, submits about five times more integer candidates (most cut off), and keeps 2--3 times more cuts in the master. This is why it is not faster despite solving the same number of subproblems exactly.
 \item \emph{Fixed costs of LABD.} Warm-up takes about 15~s (all subproblems solved exactly for five rounds), and the $p$-median selection grows with the share (median 0.5~s at 5\%, 8~s at 25\%, up to 210~s on p4 with 500 scenarios). Training, prediction, certification and the guard together take a few seconds. About 73\% of the raw predictions are infeasible and are certified.
 \end{itemize}
+
+\subsection{Bounds over Time}\label{app:lbub}
+
+Fig.~\ref{fig:lbub} plots the lower bound (LB, best bound of the master) and the upper bound (UB, incumbent of the master) recorded in every callback, together with the master gap $(UB-LB)/UB$, for a typical instance (p4, 500 scenarios) and for p10 with 300 scenarios. For Standard BD both bounds refer to the true problem. For LABD and RND they refer to the \emph{surrogate} master built with predicted or averaged cuts: the run stops when the surrogate gap is below $0.1\%$, and the returned solution is then evaluated exactly. The dotted line is the optimal objective.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_lbub.pdf}
+\caption{Master lower bound (rising curves) and upper bound (lighter falling curves), and master gap, over time. Solid: 5\% exact share; dashed: 25\%.}\label{fig:lbub}
+\end{figure}
+
+\begin{itemize}
+\item On p4, LABD closes the gap in 171~s at 5\% and 717~s at 25\%, against 1\,465~s for Standard BD. Its bounds follow the same pattern as those of Standard BD, compressed in time.
+\item RND raises its lower bound quickly, but it finds no incumbent for a long time: Gurobi keeps proposing integer solutions and the callback keeps cutting them off with new averaged cuts. On p4 its first incumbent appears only after about 2\,265~s at 5\% (Standard BD and LABD have one after about 30~s), which is why its total time exceeds that of Standard BD.
+\item On p10 with 300 scenarios, RND at 5\% is as fast as LABD, but its surrogate stops at a bound of 7\,093, far below the optimum 7\,611: its averaged cuts underestimate the recourse, and the returned solution is $1.56\%$ worse than optimal. LABD stops at 7\,603, just below the optimum, and returns the optimal solution.
+\end{itemize}
+
+\subsection{Reading a Gurobi Log}\label{app:gurobilog}
+
+The folder \texttt{logs/} of this repository contains the Gurobi logs of the master problem for p10 with 300 scenarios (Standard BD, LABD 5\%, RND 5\%). The main parts of the Standard BD log are as follows.
+
+\begin{enumerate}
+\item \emph{Header.} \texttt{Read parameters from file gurobi.env} sets \texttt{Threads}=16; then \texttt{LazyConstraints}, \texttt{MIPGap} and \texttt{TimeLimit} are set by the code, and the block ``Non-default parameters'' confirms them.
+\item \emph{Model.} \texttt{Optimize a model with 2 rows, 310 columns}: the master starts with only the capacity constraint (plus one constraint presolve removes), 10 binary facility variables and 300 continuous recourse variables $\eta_m$; all Benders cuts are added later through the callback.
+\item \emph{Root relaxation.} Objective 1\,800: without any cut the $\eta_m$ can be zero, so the first bound is the LP bound on the fixed costs alone. Benders cuts raise it during the search.
+\item \emph{Node log.} Each line reports explored and unexplored nodes, the node objective and depth, the number of fractional variables (\texttt{IntInf}), the incumbent, the best bound (\texttt{BestBd}), the gap, simplex iterations per node and elapsed time. A line starting with \texttt{H} is an incumbent found by a heuristic, and \texttt{*} an incumbent found at a node; both must first survive the lazy-cut check in the callback.
+\item \emph{Cut summary.} \texttt{Cutting planes: Lazy constraints: 44701} is the number of Benders cuts retained in the master. No ``User'' cuts are listed, although the trace records about 143\,000 cuts submitted with \texttt{cbCut} at fractional nodes; this supports the \texttt{PreCrush} question in Appendix~\ref{app:gurobi}.
+\item \emph{Termination.} \texttt{Explored 745 nodes \ldots\ in 2149.39 seconds}, \texttt{Optimal solution found (tolerance 1.00e-03)}, best objective and bound 7\,611.37. The last line, \texttt{User-callback calls 2694, time in user-callback 2138.32 sec}, shows that 99.5\% of the time is spent in the callback, i.e., in solving subproblems and building cuts; the master MIP itself takes about 11~s.
+\end{enumerate}
+
+The LABD and RND logs read the same way. Their ``best objective'' is the surrogate value (7\,603 for LABD, 7\,093 for RND), not $V(\widehat{\mathbf x})$; LABD spends 195 of its 201~s in the callback, and RND 198 of 205~s.
