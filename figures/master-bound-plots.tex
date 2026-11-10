@@ -1,42 +1,43 @@
-% Requires pgfplots and \usepgfplotslibrary{groupplots} in preamble.
-% Data: logged Gurobi master bounds; only original events at which the displayed
-% bounds change are plotted. 'nan' means no bound/incumbent was observed.
+% Requires pgfplots in preamble.
+% Elapsed time is displayed on a base-10 logarithmic axis; objective values stay linear.
+% The t=0 bookkeeping rows have missing objective bounds. The x expr maps those
+% unplottable rows to x=1 to avoid a logarithm of zero; no bound is fabricated.
 \newcommand{\IPCOBoundCurves}[1]{%
-  \addplot+[const plot, blue!75!black, solid, line width=0.9pt, mark=none, unbounded coords=jump]
-      table[x=t_bd,y=ub_bd,col sep=comma] {figures/bounds_#1_500.csv};
-  \addplot+[const plot, orange!85!black, solid, line width=0.9pt, mark=none, unbounded coords=jump]
-      table[x=t_rnd,y=ub_rnd,col sep=comma] {figures/bounds_#1_500.csv};
-  \addplot+[const plot, teal!75!black, solid, line width=0.9pt, mark=none, unbounded coords=jump]
-      table[x=t_labd,y=ub_labd,col sep=comma] {figures/bounds_#1_500.csv};
-  \addplot+[const plot, blue!75!black, dashed, line width=0.9pt, mark=none, unbounded coords=jump,forget plot]
-      table[x=t_bd,y=lb_bd,col sep=comma] {figures/bounds_#1_500.csv};
-  \addplot+[const plot, orange!85!black, dashed, line width=0.9pt, mark=none, unbounded coords=jump,forget plot]
-      table[x=t_rnd,y=lb_rnd,col sep=comma] {figures/bounds_#1_500.csv};
-  \addplot+[const plot, teal!75!black, dashed, line width=0.9pt, mark=none, unbounded coords=jump,forget plot]
-      table[x=t_labd,y=lb_labd,col sep=comma] {figures/bounds_#1_500.csv};
+  \addplot+[const plot, blue!75!black, solid, line width=0.95pt, mark=none, unbounded coords=jump]
+      table[x expr={max(1,\thisrow{t_bd})},y=ub_bd,col sep=comma] {figures/bounds_#1_500.csv};
+  \addplot+[const plot, orange!85!black, solid, line width=0.95pt, mark=none, unbounded coords=jump]
+      table[x expr={max(1,\thisrow{t_rnd})},y=ub_rnd,col sep=comma] {figures/bounds_#1_500.csv};
+  \addplot+[const plot, teal!75!black, solid, line width=0.95pt, mark=none, unbounded coords=jump]
+      table[x expr={max(1,\thisrow{t_labd})},y=ub_labd,col sep=comma] {figures/bounds_#1_500.csv};
+  \addplot+[const plot, blue!75!black, dashed, line width=0.95pt, mark=none, unbounded coords=jump,forget plot]
+      table[x expr={max(1,\thisrow{t_bd})},y=lb_bd,col sep=comma] {figures/bounds_#1_500.csv};
+  \addplot+[const plot, orange!85!black, dashed, line width=0.95pt, mark=none, unbounded coords=jump,forget plot]
+      table[x expr={max(1,\thisrow{t_rnd})},y=lb_rnd,col sep=comma] {figures/bounds_#1_500.csv};
+  \addplot+[const plot, teal!75!black, dashed, line width=0.95pt, mark=none, unbounded coords=jump,forget plot]
+      table[x expr={max(1,\thisrow{t_labd})},y=lb_labd,col sep=comma] {figures/bounds_#1_500.csv};
 }
-% Arguments: instance, full-time max, early-time max, zoom-y min, global-y max.
-\newcommand{\IPCOMasterBoundPlot}[5]{%
+% Arguments: instance, maximum elapsed time in seconds, maximum objective bound.
+\newcommand{\IPCOMasterBoundPlot}[3]{%
 \begin{tikzpicture}
-\begin{groupplot}[
-    group style={group size=2 by 1, horizontal sep=0.95cm},
-    width=0.425\textwidth,height=5.1cm,
-    xlabel={Time (s)},
-    xticklabel style={/pgf/number format/fixed,/pgf/number format/precision=0,font=\scriptsize},
-    yticklabel style={font=\scriptsize},
-    label style={font=\scriptsize},title style={font=\scriptsize},
-    scaled x ticks=false,scaled y ticks=false,
+\begin{axis}[
+    width=0.95\textwidth,height=6.1cm,
+    xlabel={Elapsed time (s, logarithmic scale)},
+    ylabel={Gurobi master objective bound},
+    xmode=log, log basis x=10, xmin=1,xmax=#2,
+    ymin=0,ymax=#3,
+    xtick={1,10,100,1000,10000},
+    xticklabels={1,10,100,1{,}000,10{,}000},
+    xticklabel style={font=\scriptsize},
     yticklabel style={/pgf/number format/fixed,/pgf/number format/precision=0,font=\scriptsize},
+    label style={font=\scriptsize},
+    scaled y ticks=false,
+    grid=major,minor x tick num=8,
+    minor grid style={gray!13},major grid style={gray!25},
     tick align=outside,
-    grid=both,minor grid style={gray!10},major grid style={gray!22},
-    no markers,
+    legend style={font=\scriptsize,draw=none,fill=white,at={(0.02,0.98)},anchor=north west},
 ]
-\nextgroupplot[ylabel={Gurobi master objective bound},title={Full run},xmin=0,xmax=#2,ymin=0,ymax=#5,
-    legend style={font=\tiny,draw=none,fill=white,at={(0.03,0.97)},anchor=north west}]
 \IPCOBoundCurves{#1}
 \legend{Standard BD,RND,LABD}
-\nextgroupplot[title={Early-time detail},xmin=0,xmax=#3,ymin=#4,ymax=#5]
-\IPCOBoundCurves{#1}
-\end{groupplot}
+\end{axis}
 \end{tikzpicture}%
 }
