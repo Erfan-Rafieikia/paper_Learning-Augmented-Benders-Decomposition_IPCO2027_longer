@@ -111,38 +111,38 @@ A \emph{cut-generation round} is an observed \texttt{solver\_iteration\_start} e
 
 \subsection{Gurobi Master Bounds over Time: 500 Scenarios}\label{app:lbub}
 
-Figures~\ref{fig:bounds-p4}--\ref{fig:bounds-p50} show the \emph{Gurobi master objective bounds}, rather than exactly evaluated original-problem objectives, against elapsed wall time for five separate SCFLP instances with $|\mathcal M|=500$. The comparison uses Standard BD, RND and LABD, with a $5\%$ exact-subproblem share for both inexact methods. Blue identifies Standard BD, orange RND and teal LABD. A \emph{solid} line is the Gurobi master upper bound (best incumbent); a \emph{dashed} line is the Gurobi master lower bound (best bound). Each figure has a full-run panel and an early-time detail panel. Time is in ordinary seconds on a \emph{linear} scale in both panels; only the objective-value range of the right panel is cropped to make early convergence visible.
+Figures~\ref{fig:bounds-p4}--\ref{fig:bounds-p50} show the \emph{Gurobi master objective bounds}, rather than exactly evaluated original-problem objectives, against elapsed wall time for five separate SCFLP instances with $|\mathcal M|=500$. The comparison uses Standard BD, RND and LABD, with a $5\%$ exact-subproblem share for both inexact methods. Blue identifies Standard BD, orange RND and teal LABD. A \emph{solid} line is the Gurobi master upper bound (best incumbent); a \emph{dashed} line is the Gurobi master lower bound (best bound). Each instance has one full-run plot with elapsed time on a \emph{base-10 logarithmic} horizontal axis (seconds) and the Gurobi objective bounds on a \emph{linear} vertical axis. The logarithmic spacing makes early bound changes visible without requiring a separate zoom panel.
 
-For Standard BD, the master represents the true stochastic problem (subject to its valid Benders cuts), so its upper bound is the objective of a feasible first-stage solution and its lower bound is valid for the original optimum. For RND and LABD, both displayed bounds refer instead to their \emph{surrogate} master with averaged or certified predicted dual cuts; a surrogate incumbent is not the exactly evaluated original objective. The plotted coordinates come from all recorded events where either displayed bound first appears or changes, plus the terminal solver event. Values and times are rounded to two decimal places for plotting; no synthetic incumbent is inserted when the Gurobi trace has none. The curves are stepwise because the most recently observed bound persists until the next logged change.
+For Standard BD, the master represents the true stochastic problem (subject to its valid Benders cuts), so its upper bound is the objective of a feasible first-stage solution and its lower bound is valid for the original optimum. For RND and LABD, both displayed bounds refer instead to their \emph{surrogate} master with averaged or certified predicted dual cuts; a surrogate incumbent is not the exactly evaluated original objective. The plotted coordinates come from all recorded events where either displayed bound first appears or changes, plus the terminal solver event. Values and times are rounded to two decimal places for plotting; no synthetic incumbent is inserted when the Gurobi trace has none. The curves are stepwise because the most recently observed bound persists until the next logged change. The time-zero initialization record contains no bound and therefore does not appear on the logarithmic plot.
 
 \input{figures/master-bound-plots}
 
 \begin{figure}[tbp]\centering
-\IPCOMasterBoundPlot{p4}{2400}{300}{8000}{13000}
-\caption{p4, 500 scenarios: Gurobi master bounds versus elapsed seconds. Solid = upper, dashed = lower; LABD and RND use a $5\%$ exact share. Right: early-time objective zoom.}\label{fig:bounds-p4}
+\IPCOMasterBoundPlot{p4}{2400}{13000}
+\caption{p4, 500 scenarios: Gurobi master bounds versus elapsed seconds. Solid = upper, dashed = lower; LABD and RND use a $5\%$ exact share. The horizontal axis is logarithmic.}\label{fig:bounds-p4}
 \end{figure}
 
 \begin{figure}[tbp]\centering
-\IPCOMasterBoundPlot{p5}{270}{100}{7300}{9500}
-\caption{p5, 500 scenarios: Gurobi master bounds (solid upper, dashed lower) with a full-run view and an early-time objective zoom.}\label{fig:bounds-p5}
+\IPCOMasterBoundPlot{p5}{270}{9500}
+\caption{p5, 500 scenarios: Gurobi master bounds against logarithmic elapsed time (solid upper, dashed lower).}\label{fig:bounds-p5}
 \end{figure}
 
 \begin{figure}[tbp]\centering
-\IPCOMasterBoundPlot{p10}{3600}{550}{5600}{8500}
-\caption{p10, 500 scenarios: Gurobi master bounds (solid upper, dashed lower) with a full-run view and an early-time objective zoom.}\label{fig:bounds-p10}
+\IPCOMasterBoundPlot{p10}{3600}{8500}
+\caption{p10, 500 scenarios: Gurobi master bounds against logarithmic elapsed time (solid upper, dashed lower).}\label{fig:bounds-p10}
 \end{figure}
 
 \begin{figure}[tbp]\centering
-\IPCOMasterBoundPlot{p20}{11000}{1500}{5700}{14000}
-\caption{p20, 500 scenarios: Gurobi master bounds (solid upper, dashed lower). RND at $5\%$ never obtains a finite master incumbent, so its solid orange curve is correctly absent. All three runs reach the time limit.}\label{fig:bounds-p20}
+\IPCOMasterBoundPlot{p20}{11000}{14000}
+\caption{p20, 500 scenarios: Gurobi master bounds against logarithmic elapsed time (solid upper, dashed lower). RND at $5\%$ never obtains a finite master incumbent, so its solid orange curve is correctly absent. All three runs reach the time limit.}\label{fig:bounds-p20}
 \end{figure}
 
 \begin{figure}[tbp]\centering
-\IPCOMasterBoundPlot{p50}{2700}{500}{7300}{11000}
-\caption{p50, 500 scenarios: Gurobi master bounds (solid upper, dashed lower) with a full-run view and an early-time objective zoom.}\label{fig:bounds-p50}
+\IPCOMasterBoundPlot{p50}{2700}{11000}
+\caption{p50, 500 scenarios: Gurobi master bounds against logarithmic elapsed time (solid upper, dashed lower).}\label{fig:bounds-p50}
 \end{figure}
 
-The full-run panels show why a smaller exact-subproblem budget can reduce elapsed time without a comparable change in the number of search rounds. At $5\%$, LABD finishes in approximately 171~s on p4, 44~s on p5, 317~s on p10 and 194~s on p50, while Standard BD takes approximately 1\,464, 158, 3\,506 and 2\,021~s, respectively. RND requires substantially longer to register its first incumbent on p4, p5 and p10. The zoom panels distinguish early bound changes that would otherwise be compressed into the left edge of the full linear-time plots. On p20, a closed surrogate gap is not observed at the limit, and the missing RND upper bound means no feasible incumbent was returned by that particular run.
+The bound trajectories show why a smaller exact-subproblem budget can reduce elapsed time without a comparable change in the number of search rounds. At $5\%$, LABD finishes in approximately 171~s on p4, 44~s on p5, 317~s on p10 and 194~s on p50, while Standard BD takes approximately 1\,464, 158, 3\,506 and 2\,021~s, respectively. RND requires substantially longer to register its first incumbent on p4, p5 and p10. The logarithmic axis separates early bound changes that were compressed at the left edge of the linear-time plots, while retaining the full run. On p20, a closed surrogate gap is not observed at the limit, and the missing RND upper bound means no feasible incumbent was returned by that particular run.
 
 \clearpage
 
